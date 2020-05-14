@@ -8,14 +8,12 @@ import (
 
 	"github.com/tinkerbell/tink/client"
 	"github.com/tinkerbell/tink/protos/hardware"
-	"github.com/tinkerbell/tink/protos/target"
 	"github.com/tinkerbell/tink/protos/template"
 	"github.com/tinkerbell/tink/protos/workflow"
 )
 
 type TinkClient struct {
 	TemplateClient template.TemplateClient
-	TargetClient   target.TargetClient
 	WorkflowClient workflow.WorkflowSvcClient
 	HardwareClient hardware.HardwareServiceClient
 }
@@ -25,7 +23,6 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
 			"tinkerbell_template": resourceTemplate(),
-			"tinkerbell_target":   resourceTarget(),
 			"tinkerbell_workflow": resourceWorkflow(),
 		},
 		ConfigureFunc: providerConfigure,
@@ -40,7 +37,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	return &TinkClient{
 		TemplateClient: template.NewTemplateClient(conn),
-		TargetClient:   target.NewTargetClient(conn),
 		WorkflowClient: workflow.NewWorkflowSvcClient(conn),
 		HardwareClient: hardware.NewHardwareServiceClient(conn),
 	}, nil

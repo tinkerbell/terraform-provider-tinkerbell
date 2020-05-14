@@ -16,7 +16,7 @@ func resourceWorkflow() *schema.Resource {
 		Read:   resourceWorkflowRead,
 		Delete: resourceWorkflowDelete,
 		Schema: map[string]*schema.Schema{
-			"target": {
+			"hardwares": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -35,7 +35,7 @@ func resourceWorkflowCreate(d *schema.ResourceData, m interface{}) error {
 
 	req := workflow.CreateRequest{
 		Template: d.Get("template").(string),
-		Target:   d.Get("target").(string),
+		Target:   d.Get("hardwares").(string),
 	}
 
 	res, err := c.CreateWorkflow(context.Background(), &req)
