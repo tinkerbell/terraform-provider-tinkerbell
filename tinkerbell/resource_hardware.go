@@ -26,7 +26,7 @@ func resourceHardware() *schema.Resource {
 }
 
 func resourceHardwareCreate(d *schema.ResourceData, m interface{}) error {
-	c := m.(*TinkClient).HardwareClient
+	c := m.(*tinkClient).HardwareClient
 
 	hw := util.HardwareWrapper{}
 	if err := json.Unmarshal([]byte(d.Get("data").(string)), &hw); err != nil {
@@ -47,7 +47,7 @@ func resourceHardwareCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceHardwareRead(d *schema.ResourceData, m interface{}) error {
-	c := m.(*TinkClient).HardwareClient
+	c := m.(*tinkClient).HardwareClient
 
 	// TODO: if error is not found, unset the ID to mark resource as non existent
 	// instead of returning the error.
@@ -69,7 +69,7 @@ func resourceHardwareRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceHardwareDelete(d *schema.ResourceData, m interface{}) error {
-	c := m.(*TinkClient).HardwareClient
+	c := m.(*tinkClient).HardwareClient
 
 	req := hardware.DeleteRequest{
 		Id: d.Id(),

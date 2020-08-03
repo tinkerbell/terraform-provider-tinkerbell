@@ -31,7 +31,7 @@ func resourceWorkflow() *schema.Resource {
 }
 
 func resourceWorkflowCreate(d *schema.ResourceData, m interface{}) error {
-	c := m.(*TinkClient).WorkflowClient
+	c := m.(*tinkClient).WorkflowClient
 
 	req := workflow.CreateRequest{
 		Template: d.Get("template").(string),
@@ -49,7 +49,7 @@ func resourceWorkflowCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceWorkflowRead(d *schema.ResourceData, m interface{}) error {
-	c := m.(*TinkClient).WorkflowClient
+	c := m.(*tinkClient).WorkflowClient
 
 	// TODO: we should only do Get and distinguish fetch error from not found error
 	// instead of iterating over all objects, as this doesn't scale.
@@ -59,7 +59,6 @@ func resourceWorkflowRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	var tmp *workflow.Workflow
-	err = nil
 
 	id := d.Id()
 	found := false
@@ -86,7 +85,7 @@ func resourceWorkflowRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceWorkflowDelete(d *schema.ResourceData, m interface{}) error {
-	c := m.(*TinkClient).WorkflowClient
+	c := m.(*tinkClient).WorkflowClient
 
 	req := workflow.GetRequest{
 		Id: d.Id(),

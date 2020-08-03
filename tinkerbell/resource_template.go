@@ -30,7 +30,7 @@ func resourceTemplate() *schema.Resource {
 }
 
 func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
-	c := m.(*TinkClient).TemplateClient
+	c := m.(*tinkClient).TemplateClient
 
 	req := template.WorkflowTemplate{
 		Name: d.Get("name").(string),
@@ -48,7 +48,7 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
-	c := m.(*TinkClient).TemplateClient
+	c := m.(*tinkClient).TemplateClient
 
 	// TODO: we should only do Get and distinguish fetch error from not found error
 	// instead of iterating over all objects, as this doesn't scale.
@@ -58,7 +58,6 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	var tmp *template.WorkflowTemplate
-	err = nil
 
 	id := d.Id()
 	found := false
@@ -90,7 +89,7 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("getting template failed: %w", err)
 	}
 
-	if err := d.Set("content", string(t.Data)); err != nil {
+	if err := d.Set("content", t.Data); err != nil {
 		return fmt.Errorf("failed setting %q field: %w", "content", err)
 	}
 
@@ -98,7 +97,7 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceTemplateDelete(d *schema.ResourceData, m interface{}) error {
-	c := m.(*TinkClient).TemplateClient
+	c := m.(*tinkClient).TemplateClient
 
 	req := template.GetRequest{
 		Id: d.Id(),
@@ -112,7 +111,7 @@ func resourceTemplateDelete(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
-	c := m.(*TinkClient).TemplateClient
+	c := m.(*tinkClient).TemplateClient
 
 	req := template.WorkflowTemplate{
 		Id:   d.Id(),

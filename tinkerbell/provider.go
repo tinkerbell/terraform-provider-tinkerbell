@@ -12,7 +12,7 @@ import (
 	"github.com/tinkerbell/tink/protos/workflow"
 )
 
-type TinkClient struct {
+type tinkClient struct {
 	TemplateClient template.TemplateClient
 	WorkflowClient workflow.WorkflowSvcClient
 	HardwareClient hardware.HardwareServiceClient
@@ -36,7 +36,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, fmt.Errorf("failed to create tink client: %w", err)
 	}
 
-	return &TinkClient{
+	return &tinkClient{
 		TemplateClient: template.NewTemplateClient(conn),
 		WorkflowClient: workflow.NewWorkflowSvcClient(conn),
 		HardwareClient: hardware.NewHardwareServiceClient(conn),
