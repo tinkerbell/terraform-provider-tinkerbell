@@ -24,6 +24,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"tinkerbell_template": resourceTemplate(),
 			"tinkerbell_workflow": resourceWorkflow(),
+			"tinkerbell_hardware": resourceHardware(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
