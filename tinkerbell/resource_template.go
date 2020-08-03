@@ -34,7 +34,7 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 
 	req := template.WorkflowTemplate{
 		Name: d.Get("name").(string),
-		Data: []byte(d.Get("content").(string)),
+		Data: d.Get("content").(string),
 	}
 
 	res, err := c.CreateTemplate(context.Background(), &req)
@@ -117,7 +117,7 @@ func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
 	req := template.WorkflowTemplate{
 		Id:   d.Id(),
 		Name: d.Get("name").(string),
-		Data: []byte(d.Get("content").(string)),
+		Data: d.Get("content").(string),
 	}
 
 	if _, err := c.UpdateTemplate(context.Background(), &req); err != nil {

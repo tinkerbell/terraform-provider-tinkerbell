@@ -35,7 +35,7 @@ func resourceWorkflowCreate(d *schema.ResourceData, m interface{}) error {
 
 	req := workflow.CreateRequest{
 		Template: d.Get("template").(string),
-		Target:   d.Get("hardwares").(string),
+		Hardware: d.Get("hardwares").(string),
 	}
 
 	res, err := c.CreateWorkflow(context.Background(), &req)
