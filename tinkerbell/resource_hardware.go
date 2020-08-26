@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/tinkerbell/tink/pkg"
 	"github.com/tinkerbell/tink/protos/hardware"
-	"github.com/tinkerbell/tink/util"
 )
 
 func resourceHardware() *schema.Resource {
@@ -28,7 +28,7 @@ func resourceHardware() *schema.Resource {
 func resourceHardwareCreate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*tinkClient).HardwareClient
 
-	hw := util.HardwareWrapper{}
+	hw := pkg.HardwareWrapper{}
 	if err := json.Unmarshal([]byte(d.Get("data").(string)), &hw); err != nil {
 		return fmt.Errorf("failed decoding 'data' as JSON: %w", err)
 	}
@@ -56,7 +56,7 @@ func resourceHardwareRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("hardware with ID %q not found: %w", d.Id(), err)
 	}
 
-	b, err := json.Marshal(util.HardwareWrapper{Hardware: hw})
+	b, err := json.Marshal(pkg.HardwareWrapper{Hardware: hw})
 	if err != nil {
 		return fmt.Errorf("serializing received hardware entry failed: %w", err)
 	}
