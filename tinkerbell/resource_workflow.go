@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/tinkerbell/tink/protos/workflow"
 )
 
 func resourceWorkflow() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceWorkflowCreate,
-		Read:   resourceWorkflowRead,
-		Delete: resourceWorkflowDelete,
+		CreateContext: resourceWorkflowCreate,
+		ReadContext:   resourceWorkflowRead,
+		DeleteContext: resourceWorkflowDelete,
 		Schema: map[string]*schema.Schema{
 			"hardwares": {
 				Type:     schema.TypeString,
@@ -30,7 +31,7 @@ func resourceWorkflow() *schema.Resource {
 	}
 }
 
-func resourceWorkflowCreate(d *schema.ResourceData, m interface{}) error {
+func resourceWorkflowCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).WorkflowClient
 
 	req := workflow.CreateRequest{
@@ -38,9 +39,9 @@ func resourceWorkflowCreate(d *schema.ResourceData, m interface{}) error {
 		Hardware: d.Get("hardwares").(string),
 	}
 
-	res, err := c.CreateWorkflow(context.Background(), &req)
+	res, err := c.CreateWorkflow(ctx, &req)
 	if err != nil {
-		return fmt.Errorf("creating workflow failed: %w", err)
+		return diagsFromErr(fmt.Errorf("creating workflow failed: %w", err))
 	}
 
 	d.SetId(res.Id)
@@ -48,14 +49,14 @@ func resourceWorkflowCreate(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceWorkflowRead(d *schema.ResourceData, m interface{}) error {
+func resourceWorkflowRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).WorkflowClient
 
 	// TODO: we should only do Get and distinguish fetch error from not found error
 	// instead of iterating over all objects, as this doesn't scale.
-	list, err := c.ListWorkflows(context.Background(), &workflow.Empty{})
+	list, err := c.ListWorkflows(ctx, &workflow.Empty{})
 	if err != nil {
-		return fmt.Errorf("listing workflows failed: %w", err)
+		return diagsFromErr(fmt.Errorf("listing workflows failed: %w", err))
 	}
 
 	var tmp *workflow.Workflow
@@ -72,7 +73,7 @@ func resourceWorkflowRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if err != nil && err != io.EOF {
-		return fmt.Errorf("listing workflows failed: %w", err)
+		return diagsFromErr(fmt.Errorf("listing workflows failed: %w", err))
 	}
 
 	if !found {
@@ -84,15 +85,15 @@ func resourceWorkflowRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceWorkflowDelete(d *schema.ResourceData, m interface{}) error {
+func resourceWorkflowDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).WorkflowClient
 
 	req := workflow.GetRequest{
 		Id: d.Id(),
 	}
 
-	if _, err := c.DeleteWorkflow(context.Background(), &req); err != nil {
-		return fmt.Errorf("removing workflow failed: %w", err)
+	if _, err := c.DeleteWorkflow(ctx, &req); err != nil {
+		return diagsFromErr(fmt.Errorf("removing workflow failed: %w", err))
 	}
 
 	return nil

@@ -5,17 +5,18 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/tinkerbell/tink/protos/template"
 )
 
 func resourceTemplate() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceTemplateCreate,
-		Read:   resourceTemplateRead,
-		Delete: resourceTemplateDelete,
-		Update: resourceTemplateUpdate,
+		CreateContext: resourceTemplateCreate,
+		ReadContext:   resourceTemplateRead,
+		DeleteContext: resourceTemplateDelete,
+		UpdateContext: resourceTemplateUpdate,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -29,7 +30,7 @@ func resourceTemplate() *schema.Resource {
 	}
 }
 
-func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
+func resourceTemplateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).TemplateClient
 
 	req := template.WorkflowTemplate{
@@ -37,9 +38,9 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 		Data: d.Get("content").(string),
 	}
 
-	res, err := c.CreateTemplate(context.Background(), &req)
+	res, err := c.CreateTemplate(ctx, &req)
 	if err != nil {
-		return fmt.Errorf("creating template failed: %w", err)
+		return diagsFromErr(fmt.Errorf("creating template failed: %w", err))
 	}
 
 	d.SetId(res.Id)
@@ -47,14 +48,14 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
+func resourceTemplateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).TemplateClient
 
 	// TODO: we should only do Get and distinguish fetch error from not found error
 	// instead of iterating over all objects, as this doesn't scale.
-	list, err := c.ListTemplates(context.Background(), &template.Empty{})
+	list, err := c.ListTemplates(ctx, &template.Empty{})
 	if err != nil {
-		return fmt.Errorf("listing templates failed: %w", err)
+		return diagsFromErr(fmt.Errorf("listing templates failed: %w", err))
 	}
 
 	var tmp *template.WorkflowTemplate
@@ -71,7 +72,7 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if err != nil && err != io.EOF {
-		return fmt.Errorf("listing templates failed: %w", err)
+		return diagsFromErr(fmt.Errorf("listing templates failed: %w", err))
 	}
 
 	if !found {
@@ -84,33 +85,33 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 		Id: d.Id(),
 	}
 
-	t, err := c.GetTemplate(context.Background(), &req)
+	t, err := c.GetTemplate(ctx, &req)
 	if err != nil {
-		return fmt.Errorf("getting template failed: %w", err)
+		return diagsFromErr(fmt.Errorf("getting template failed: %w", err))
 	}
 
 	if err := d.Set("content", t.Data); err != nil {
-		return fmt.Errorf("failed setting %q field: %w", "content", err)
+		return diagsFromErr(fmt.Errorf("failed setting %q field: %w", "content", err))
 	}
 
 	return nil
 }
 
-func resourceTemplateDelete(d *schema.ResourceData, m interface{}) error {
+func resourceTemplateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).TemplateClient
 
 	req := template.GetRequest{
 		Id: d.Id(),
 	}
 
-	if _, err := c.DeleteTemplate(context.Background(), &req); err != nil {
-		return fmt.Errorf("removing template failed: %w", err)
+	if _, err := c.DeleteTemplate(ctx, &req); err != nil {
+		return diagsFromErr(fmt.Errorf("removing template failed: %w", err))
 	}
 
 	return nil
 }
 
-func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceTemplateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).TemplateClient
 
 	req := template.WorkflowTemplate{
@@ -119,8 +120,8 @@ func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
 		Data: d.Get("content").(string),
 	}
 
-	if _, err := c.UpdateTemplate(context.Background(), &req); err != nil {
-		return fmt.Errorf("updating template failed: %w", err)
+	if _, err := c.UpdateTemplate(ctx, &req); err != nil {
+		return diagsFromErr(fmt.Errorf("updating template failed: %w", err))
 	}
 
 	return nil
