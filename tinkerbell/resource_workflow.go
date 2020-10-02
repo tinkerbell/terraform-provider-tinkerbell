@@ -2,6 +2,7 @@ package tinkerbell
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -18,14 +19,17 @@ func resourceWorkflow() *schema.Resource {
 		DeleteContext: resourceWorkflowDelete,
 		Schema: map[string]*schema.Schema{
 			"hardwares": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateDiagFunc: validateNotEmpty,
+				DiffSuppressFunc: suppressEquivalentJSONDiffs,
 			},
 			"template": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateDiagFunc: validateNotEmpty,
 			},
 		},
 	}
@@ -41,7 +45,7 @@ func resourceWorkflowCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	res, err := c.CreateWorkflow(ctx, &req)
 	if err != nil {
-		return diagsFromErr(fmt.Errorf("creating workflow failed: %w", err))
+		return diagsFromErr(fmt.Errorf("creating workflow: %w", err))
 	}
 
 	d.SetId(res.Id)
@@ -49,34 +53,43 @@ func resourceWorkflowCreate(ctx context.Context, d *schema.ResourceData, m inter
 	return nil
 }
 
-func resourceWorkflowRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).WorkflowClient
-
-	// TODO: we should only do Get and distinguish fetch error from not found error
-	// instead of iterating over all objects, as this doesn't scale.
+func getWorkflow(ctx context.Context, c workflow.WorkflowSvcClient, uuid string) (*workflow.Workflow, error) {
 	list, err := c.ListWorkflows(ctx, &workflow.Empty{})
 	if err != nil {
-		return diagsFromErr(fmt.Errorf("listing workflows failed: %w", err))
+		return nil, fmt.Errorf("getting all workflow entries: %w", err)
 	}
 
-	var tmp *workflow.Workflow
+	for {
+		wf, err := list.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 
-	id := d.Id()
-	found := false
+			return nil, fmt.Errorf("receiving workflow entry: %w", err)
+		}
 
-	for tmp, err = list.Recv(); err == nil && tmp.Id != ""; tmp, err = list.Recv() {
-		if tmp.Id == id {
-			found = true
+		if wf == nil {
+			return nil, fmt.Errorf("received empty workflow entry: %w", err)
+		}
 
-			break
+		if wf.GetId() == uuid {
+			return wf, nil
 		}
 	}
 
-	if err != nil && err != io.EOF {
-		return diagsFromErr(fmt.Errorf("listing workflows failed: %w", err))
+	return nil, nil
+}
+
+func resourceWorkflowRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(*tinkClient).WorkflowClient
+
+	wf, err := getWorkflow(ctx, c, d.Id())
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("getting workflow %q: %w", d.Id(), err))
 	}
 
-	if !found {
+	if wf == nil {
 		d.SetId("")
 
 		return nil
@@ -88,12 +101,23 @@ func resourceWorkflowRead(ctx context.Context, d *schema.ResourceData, m interfa
 func resourceWorkflowDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).WorkflowClient
 
+	wf, err := getWorkflow(ctx, c, d.Id())
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("getting workflow %q: %w", d.Id(), err))
+	}
+
+	if wf == nil {
+		d.SetId("")
+
+		return nil
+	}
+
 	req := workflow.GetRequest{
 		Id: d.Id(),
 	}
 
 	if _, err := c.DeleteWorkflow(ctx, &req); err != nil {
-		return diagsFromErr(fmt.Errorf("removing workflow failed: %w", err))
+		return diagsFromErr(fmt.Errorf("removing workflow %q: %w", d.Id(), err))
 	}
 
 	return nil
