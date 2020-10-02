@@ -122,6 +122,14 @@ install-tools: ## Installs development tools required for creating a release.
 	@echo Installing tools from tools.go
 	@cat tools.go | grep _ | awk -F'"' '{print $$2}' | xargs -tI % go get %
 
+.PHONY: test-up
+test-up: ## Starts testing tink-server instance in Docker container using docker-compose.
+	docker-compose -f test/docker-compose.yml up -d
+
+.PHONY: test-down
+test-down: ## Tears down testing tink-server instance created by 'test-up'.
+	docker-compose -f test/docker-compose.yml down
+
 .PHONY: help
 help: ## Prints help message.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
