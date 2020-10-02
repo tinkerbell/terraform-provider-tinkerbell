@@ -2,12 +2,14 @@ package tinkerbell
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
+	"github.com/tinkerbell/tink/pkg"
 	"github.com/tinkerbell/tink/protos/template"
 )
 
@@ -19,15 +21,70 @@ func resourceTemplate() *schema.Resource {
 		UpdateContext: resourceTemplateUpdate,
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validateNotEmpty,
 			},
 			"content": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validateTemplate,
 			},
 		},
 	}
+}
+
+func validateNotEmpty(m interface{}, p cty.Path) diag.Diagnostics {
+	if m.(string) == "" {
+		return diagsFromErr(fmt.Errorf("value must not be empty"))
+	}
+
+	return nil
+}
+
+func validateTemplate(m interface{}, p cty.Path) diag.Diagnostics {
+	if m.(string) == "" {
+		return diagsFromErr(fmt.Errorf("template content must not be empty"))
+	}
+
+	wf, err := pkg.ParseYAML([]byte(m.(string)))
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("parsing template: %w", err))
+	}
+
+	if err := pkg.ValidateTemplate(wf); err != nil {
+		return diagsFromErr(fmt.Errorf("validating template: %w", err))
+	}
+
+	return nil
+}
+
+func getTemplate(ctx context.Context, c template.TemplateClient, id string) (*template.WorkflowTemplate, error) {
+	list, err := c.ListTemplates(ctx, &template.Empty{})
+	if err != nil {
+		return nil, fmt.Errorf("getting all template entries: %w", err)
+	}
+
+	for {
+		t, err := list.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return nil, fmt.Errorf("receiving template entry: %w", err)
+		}
+
+		if t == nil {
+			return nil, fmt.Errorf("received empty template entry: %w", err)
+		}
+
+		if t.GetId() == id {
+			return t, nil
+		}
+	}
+
+	return nil, nil
 }
 
 func resourceTemplateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -40,7 +97,7 @@ func resourceTemplateCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	res, err := c.CreateTemplate(ctx, &req)
 	if err != nil {
-		return diagsFromErr(fmt.Errorf("creating template failed: %w", err))
+		return diagsFromErr(fmt.Errorf("creating template: %w", err))
 	}
 
 	d.SetId(res.Id)
@@ -51,31 +108,12 @@ func resourceTemplateCreate(ctx context.Context, d *schema.ResourceData, m inter
 func resourceTemplateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).TemplateClient
 
-	// TODO: we should only do Get and distinguish fetch error from not found error
-	// instead of iterating over all objects, as this doesn't scale.
-	list, err := c.ListTemplates(ctx, &template.Empty{})
+	t, err := getTemplate(ctx, c, d.Id())
 	if err != nil {
-		return diagsFromErr(fmt.Errorf("listing templates failed: %w", err))
+		return diagsFromErr(fmt.Errorf("checking if template exists: %w", err))
 	}
 
-	var tmp *template.WorkflowTemplate
-
-	id := d.Id()
-	found := false
-
-	for tmp, err = list.Recv(); err == nil && tmp.Name != ""; tmp, err = list.Recv() {
-		if tmp.Id == id {
-			found = true
-
-			break
-		}
-	}
-
-	if err != nil && err != io.EOF {
-		return diagsFromErr(fmt.Errorf("listing templates failed: %w", err))
-	}
-
-	if !found {
+	if t == nil {
 		d.SetId("")
 
 		return nil
@@ -85,13 +123,13 @@ func resourceTemplateRead(ctx context.Context, d *schema.ResourceData, m interfa
 		Id: d.Id(),
 	}
 
-	t, err := c.GetTemplate(ctx, &req)
+	t, err = c.GetTemplate(ctx, &req)
 	if err != nil {
-		return diagsFromErr(fmt.Errorf("getting template failed: %w", err))
+		return diagsFromErr(fmt.Errorf("getting template %q: %w", req.Id, err))
 	}
 
 	if err := d.Set("content", t.Data); err != nil {
-		return diagsFromErr(fmt.Errorf("failed setting %q field: %w", "content", err))
+		return diagsFromErr(fmt.Errorf("setting %q field: %w", "content", err))
 	}
 
 	return nil
@@ -100,12 +138,23 @@ func resourceTemplateRead(ctx context.Context, d *schema.ResourceData, m interfa
 func resourceTemplateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).TemplateClient
 
+	t, err := getTemplate(ctx, c, d.Id())
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("checking if template exists: %w", err))
+	}
+
+	if t == nil {
+		d.SetId("")
+
+		return nil
+	}
+
 	req := template.GetRequest{
 		Id: d.Id(),
 	}
 
 	if _, err := c.DeleteTemplate(ctx, &req); err != nil {
-		return diagsFromErr(fmt.Errorf("removing template failed: %w", err))
+		return diagsFromErr(fmt.Errorf("removing template: %w", err))
 	}
 
 	return nil
@@ -114,6 +163,15 @@ func resourceTemplateDelete(ctx context.Context, d *schema.ResourceData, m inter
 func resourceTemplateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).TemplateClient
 
+	t, err := getTemplate(ctx, c, d.Id())
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("checking if template exists: %w", err))
+	}
+
+	if t == nil {
+		return diagsFromErr(fmt.Errorf("template %q do not exist: %w", d.Id(), err))
+	}
+
 	req := template.WorkflowTemplate{
 		Id:   d.Id(),
 		Name: d.Get("name").(string),
@@ -121,7 +179,7 @@ func resourceTemplateUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if _, err := c.UpdateTemplate(ctx, &req); err != nil {
-		return diagsFromErr(fmt.Errorf("updating template failed: %w", err))
+		return diagsFromErr(fmt.Errorf("updating template: %w", err))
 	}
 
 	return nil
