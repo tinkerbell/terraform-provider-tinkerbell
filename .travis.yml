@@ -1,0 +1,31 @@
+language: go
+
+go:
+  - '1.15'
+  - master
+
+git:
+  depth: 1
+
+notifications:
+  email: false
+
+matrix:
+  allow_failures:
+    - go: master
+
+install: make download
+
+before_script:
+  - make install-ci
+
+script:
+  - make all-cover
+
+after_script:
+  - make cover-upload EXIT_CODE=$TRAVIS_TEST_RESULT
+
+# Build only master branch triggered by merge commits. Other branches should be built via PR trigger.
+branches:
+  only:
+  - master
