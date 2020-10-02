@@ -14,12 +14,17 @@ matrix:
   allow_failures:
     - go: master
 
+services:
+  - docker
+
 install: make download
 
 before_script:
   - make install-ci
+  - make test-up
 
 script:
+  - make testacc
   - make all-cover
 
 after_script:
