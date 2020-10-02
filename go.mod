@@ -6,6 +6,7 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/google/go-cmp v0.5.2 // indirect
+	github.com/google/uuid v1.1.2
 	github.com/grpc-ecosystem/grpc-gateway v1.15.0 // indirect
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/go-hclog v0.14.1 // indirect
