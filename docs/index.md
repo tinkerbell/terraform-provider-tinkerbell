@@ -1,3 +1,10 @@
+# Tinkerbell Provider
+
+The Tinkerbell provider allows to create [Tinkerbell](https://tinkerbell.org/) hardware entried, templates and workflows in a declarative way.
+
+## Example Usage
+
+```hcl
 terraform {
   required_providers {
     tinkerbell = {
@@ -86,8 +93,15 @@ EOF
 }
 
 resource "tinkerbell_workflow" "foo" {
-        template  = tinkerbell_template.foo.id
+	template  = tinkerbell_template.foo.id
   hardwares = hardwares = <<EOF
 {"device_1":"ff:ff:ff:ff:ff:ff"}
 EOF
 }
+```
+
+## Argument Reference
+
+* `grpc_authority` - (Optional) Equivalent of TINKERBELL_GRPC_AUTHORITY environment variable.
+
+* `cert_url` - (Optional) Equivalent of TINKERBELL_CERT_URL environment variable.

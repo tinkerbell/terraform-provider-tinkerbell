@@ -1,0 +1,69 @@
+version: "2.1"
+services:
+  certs:
+    build: tls
+    volumes:
+    - certs:/certs
+    command:
+    - /bin/sh
+    - -c
+    - '/entrypoint.sh && tail -f /dev/null'
+    stop_signal: SIGKILL
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /certs/bundle.pem && test -f /certs/ca-key.pem && test -f /certs/ca.csr && test -f /certs/ca.json && test -f /certs/ca.pem && test -f /certs/server-csr.json && test -f /certs/server-key.pem && test -f /certs/server.csr && test -f /certs/server.pem"]
+      interval: 5s
+      timeout: 2s
+      retries: 30
+
+  tink-server:
+    image: ${TINKERBELL_TINK_SERVER_IMAGE:-quay.io/tinkerbell/tink:sha-adb49da}
+    environment:
+      FACILITY: ${FACILITY:-onprem}
+      PACKET_ENV: ${PACKET_ENV:-testing}
+      PACKET_VERSION: ${PACKET_VERSION:-ignored}
+      ROLLBAR_TOKEN: ${ROLLBAR_TOKEN:-ignored}
+      ROLLBAR_DISABLE: ${ROLLBAR_DISABLE:-1}
+      PGDATABASE: tinkerbell
+      PGHOST: db
+      PGPASSWORD: tinkerbell
+      PGPORT: 5432
+      PGSSLMODE: disable
+      PGUSER: tinkerbell
+      TINKERBELL_GRPC_AUTHORITY: :42113
+      TINKERBELL_HTTP_AUTHORITY: :42114
+      TINK_AUTH_USERNAME: ${TINKERBELL_TINK_USERNAME:-admin}
+      TINK_AUTH_PASSWORD: ${TINKERBELL_TINK_PASSWORD:-admin}
+    depends_on:
+      db:
+        condition: service_healthy
+      certs:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- 127.0.0.1:42114/cert"] # port needs to match TINKERBELL_HTTP_AUTHORITY
+      interval: 5s
+      timeout: 2s
+      retries: 30
+    volumes:
+      - certs:/certs/${FACILITY:-onprem}
+    ports:
+      - 42113:42113/tcp
+      - 42114:42114/tcp
+
+  db:
+    image: postgres:10-alpine
+    environment:
+      POSTGRES_DB: tinkerbell
+      POSTGRES_PASSWORD: tinkerbell
+      POSTGRES_USER: tinkerbell
+    volumes:
+      - ./db/tinkerbell-init.sql:/docker-entrypoint-initdb.d/tinkerbell-init.sql:ro
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tinkerbell"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+volumes:
+  certs:

@@ -1,17 +1,10 @@
-terraform {
-  required_providers {
-    tinkerbell = {
-      source  = "tinkerbell/tinkerbell"
-      version = "0.1.0"
-    }
-  }
-}
+# Workflow Resource
 
-provider "tinkerbell" {
-  grpc_authority = "127.0.0.1:42113"
-  cert_url       = "http://127.0.0.1:42114/cert"
-}
+This resource allows to create Tinkerbell [workflows](https://docs.tinkerbell.org/about/workflows/).
 
+## Example Usage
+
+```hcl
 resource "tinkerbell_hardware" "foo" {
   data = <<EOF
 {
@@ -91,3 +84,9 @@ resource "tinkerbell_workflow" "foo" {
 {"device_1":"ff:ff:ff:ff:ff:ff"}
 EOF
 }
+```
+
+## Argument Reference
+
+* `template` - (Required) Template ID to use.
+* `hardwares` - (Requires) JSON formatted map of hardwares to create a workflow for, where key is device name and value is MAC address of desired hardware. See Tinkerbell [documentation](https://docs.tinkerbell.org/about/workflows/) for more details.

@@ -1,44 +1,103 @@
 package tinkerbell
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"reflect"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/tinkerbell/tink/pkg"
 	"github.com/tinkerbell/tink/protos/hardware"
 )
 
+const (
+	dataAttribute = "data"
+)
+
 func resourceHardware() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceHardwareCreate,
-		Read:   resourceHardwareRead,
-		Delete: resourceHardwareDelete,
-		Update: resourceHardwareCreate,
+		CreateContext: resourceHardwareCreate,
+		ReadContext:   resourceHardwareRead,
+		DeleteContext: resourceHardwareDelete,
+		UpdateContext: resourceHardwareUpdate,
 		Schema: map[string]*schema.Schema{
-			"data": {
-				Type:     schema.TypeString,
-				Required: true,
+			dataAttribute: {
+				Type:             schema.TypeString,
+				Required:         true,
+				DiffSuppressFunc: suppressEquivalentJSONDiffs,
+				ValidateDiagFunc: validateHardwareData,
 			},
 		},
 	}
 }
 
-func resourceHardwareCreate(d *schema.ResourceData, m interface{}) error {
-	c := m.(*tinkClient).HardwareClient
+func suppressEquivalentJSONDiffs(k, old, new string, d *schema.ResourceData) bool {
+	ob := bytes.NewBufferString("")
+	if err := json.Compact(ob, []byte(old)); err != nil {
+		return false
+	}
 
+	nb := bytes.NewBufferString("")
+	if err := json.Compact(nb, []byte(new)); err != nil {
+		return false
+	}
+
+	return jsonBytesEqual(ob.Bytes(), nb.Bytes())
+}
+
+func jsonBytesEqual(b1, b2 []byte) bool {
+	var o1 interface{}
+	if err := json.Unmarshal(b1, &o1); err != nil {
+		return false
+	}
+
+	var o2 interface{}
+	if err := json.Unmarshal(b2, &o2); err != nil {
+		return false
+	}
+
+	return reflect.DeepEqual(o1, o2)
+}
+
+func validateHardwareData(m interface{}, p cty.Path) diag.Diagnostics {
 	hw := pkg.HardwareWrapper{}
-	if err := json.Unmarshal([]byte(d.Get("data").(string)), &hw); err != nil {
-		return fmt.Errorf("failed decoding 'data' as JSON: %w", err)
+
+	if err := json.Unmarshal([]byte(m.(string)), &hw); err != nil {
+		return diagsFromErr(fmt.Errorf("failed decoding 'data' as JSON: %w", err))
 	}
 
 	if hw.Hardware.Id == "" {
-		return fmt.Errorf("ID is required in JSON data")
+		return diagsFromErr(fmt.Errorf("ID is required in JSON data"))
 	}
 
-	if _, err := c.Push(context.Background(), &hardware.PushRequest{Data: hw.Hardware}); err != nil {
-		return fmt.Errorf("failed pushing hardware data: %w", err)
+	return nil
+}
+
+func resourceHardwareCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(*tinkClient).HardwareClient
+
+	hw := pkg.HardwareWrapper{}
+
+	// We can skip error checking here, validate function should already validate it.
+	_ = json.Unmarshal([]byte(d.Get(dataAttribute).(string)), &hw)
+
+	h, err := getHardware(ctx, c, hw.Hardware.Id)
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("checking if hardware ID %q already exists: %w", hw.Hardware.Id, err))
+	}
+
+	if h != nil {
+		return diagsFromErr(fmt.Errorf("hardware ID %q already exists", hw.Hardware.Id))
+	}
+
+	if _, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware}); err != nil {
+		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
 	}
 
 	d.SetId(hw.Hardware.Id)
@@ -46,37 +105,93 @@ func resourceHardwareCreate(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceHardwareRead(d *schema.ResourceData, m interface{}) error {
+func resourceHardwareUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).HardwareClient
 
-	// TODO: if error is not found, unset the ID to mark resource as non existent
-	// instead of returning the error.
-	hw, err := c.ByID(context.Background(), &hardware.GetRequest{Id: d.Id()})
+	hw := pkg.HardwareWrapper{}
+
+	// We can skip error checking here, validate function should already validate it.
+	_ = json.Unmarshal([]byte(d.Get(dataAttribute).(string)), &hw)
+
+	h, err := getHardware(ctx, c, hw.Hardware.Id)
 	if err != nil {
-		return fmt.Errorf("hardware with ID %q not found: %w", d.Id(), err)
+		return diagsFromErr(fmt.Errorf("checking if hardware ID %q already exists: %w", hw.Hardware.Id, err))
 	}
 
-	b, err := json.Marshal(pkg.HardwareWrapper{Hardware: hw})
-	if err != nil {
-		return fmt.Errorf("serializing received hardware entry failed: %w", err)
+	if h == nil {
+		return diagsFromErr(fmt.Errorf("hardware ID %q does not exist", hw.Hardware.Id))
 	}
 
-	if err := d.Set("data", string(b)); err != nil {
-		return fmt.Errorf("failed setting %q field: %w", "data", err)
+	if _, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware}); err != nil {
+		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
 	}
 
 	return nil
 }
 
-func resourceHardwareDelete(d *schema.ResourceData, m interface{}) error {
+func getHardware(ctx context.Context, c hardware.HardwareServiceClient, uuid string) (*hardware.Hardware, error) {
+	list, err := c.All(ctx, &hardware.Empty{})
+	if err != nil {
+		return nil, fmt.Errorf("getting all hardware entries: %w", err)
+	}
+
+	for {
+		hw, err := list.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return nil, fmt.Errorf("receiving hardware entry: %w", err)
+		}
+
+		if hw == nil {
+			return nil, fmt.Errorf("received empty hardware entry: %w", err)
+		}
+
+		if hw.GetId() == uuid {
+			return hw, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func resourceHardwareRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(*tinkClient).HardwareClient
+
+	h, err := getHardware(ctx, c, d.Id())
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("checking if hardware %q exists: %w", d.Id(), err))
+	}
+
+	if h == nil {
+		d.SetId("")
+
+		return nil
+	}
+
+	b, err := json.Marshal(pkg.HardwareWrapper{Hardware: h})
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("serializing received hardware entry failed: %w", err))
+	}
+
+	if err := d.Set(dataAttribute, string(b)); err != nil {
+		return diagsFromErr(fmt.Errorf("failed setting %q field: %w", dataAttribute, err))
+	}
+
+	return nil
+}
+
+func resourceHardwareDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*tinkClient).HardwareClient
 
 	req := hardware.DeleteRequest{
 		Id: d.Id(),
 	}
 
-	if _, err := c.Delete(context.Background(), &req); err != nil {
-		return fmt.Errorf("removing hardware failed: %w", err)
+	if _, err := c.Delete(ctx, &req); err != nil {
+		return diagsFromErr(fmt.Errorf("removing hardware failed: %w", err))
 	}
 
 	return nil
