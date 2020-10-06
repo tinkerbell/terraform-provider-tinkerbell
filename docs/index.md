@@ -94,7 +94,7 @@ EOF
 
 resource "tinkerbell_workflow" "foo" {
 	template  = tinkerbell_template.foo.id
-  hardwares = hardwares = <<EOF
+  hardwares = <<EOF
 {"device_1":"ff:ff:ff:ff:ff:ff"}
 EOF
 }
