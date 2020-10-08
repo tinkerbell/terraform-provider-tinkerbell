@@ -21,6 +21,10 @@ resource "tinkerbell_workflow" "foo" {
 	hardwares = <<EOF
 {"device_1":"%s"}
 EOF
+
+	depends_on = [
+		tinkerbell_hardware.foo,
+	]
 }
 `,
 		testAccHardware(testAccHardwareConfig(name, rMAC)),
