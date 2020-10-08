@@ -132,6 +132,25 @@ func TestAccHardware_update(t *testing.T) {
 	})
 }
 
+func TestAccHardware_updateUUID(t *testing.T) {
+	rUUID := newUUID(t)
+	nUUID := newUUID(t)
+	rMAC := newMAC(t)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccHardware(testAccHardwareConfig(rUUID, rMAC)),
+			},
+			{
+				Config: testAccHardware(testAccHardwareConfig(nUUID, rMAC)),
+			},
+		},
+	})
+}
+
 func TestAccHardware_ignoreWhitespace(t *testing.T) {
 	rUUID := newUUID(t)
 	rMAC := newMAC(t)

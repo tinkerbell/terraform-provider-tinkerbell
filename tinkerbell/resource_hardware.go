@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"reflect"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/tinkerbell/tink/pkg"
 	"github.com/tinkerbell/tink/protos/hardware"
@@ -26,6 +28,27 @@ func resourceHardware() *schema.Resource {
 		ReadContext:   resourceHardwareRead,
 		DeleteContext: resourceHardwareDelete,
 		UpdateContext: resourceHardwareUpdate,
+		CustomizeDiff: customdiff.All(
+			customdiff.ForceNewIfChange("data", func(ctx context.Context, old, new, meta interface{}) bool {
+				oldHw := pkg.HardwareWrapper{}
+
+				if err := json.Unmarshal([]byte(old.(string)), &oldHw); err != nil {
+					log.Printf("Got malformed hardware entry from Terraform state %q: %v", old.(string), err)
+
+					return true
+				}
+
+				newHw := pkg.HardwareWrapper{}
+
+				if err := json.Unmarshal([]byte(new.(string)), &newHw); err != nil {
+					log.Printf("Got malformed hardware entry from the configuration %q: %v", new.(string), err)
+
+					return true
+				}
+
+				return oldHw.Hardware.Id != newHw.Hardware.Id
+			}),
+		),
 		Schema: map[string]*schema.Schema{
 			dataAttribute: {
 				Type:             schema.TypeString,
@@ -118,19 +141,19 @@ func resourceHardwareUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	c := tc.hardwareClient
 
+	h, err := getHardware(ctx, c, d.Id())
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("checking if hardware ID %q already exists: %w", d.Id(), err))
+	}
+
+	if h == nil {
+		return diagsFromErr(fmt.Errorf("hardware ID %q does not exist", d.Id()))
+	}
+
 	hw := pkg.HardwareWrapper{}
 
 	// We can skip error checking here, validate function should already validate it.
 	_ = json.Unmarshal([]byte(d.Get(dataAttribute).(string)), &hw)
-
-	h, err := getHardware(ctx, c, hw.Hardware.Id)
-	if err != nil {
-		return diagsFromErr(fmt.Errorf("checking if hardware ID %q already exists: %w", hw.Hardware.Id, err))
-	}
-
-	if h == nil {
-		return diagsFromErr(fmt.Errorf("hardware ID %q does not exist", hw.Hardware.Id))
-	}
 
 	if _, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware}); err != nil {
 		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
