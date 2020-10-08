@@ -3,6 +3,7 @@ package tinkerbell
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -11,12 +12,6 @@ import (
 	"github.com/tinkerbell/tink/protos/template"
 	"github.com/tinkerbell/tink/protos/workflow"
 )
-
-type tinkClient struct {
-	TemplateClient template.TemplateClient
-	WorkflowClient workflow.WorkflowSvcClient
-	HardwareClient hardware.HardwareServiceClient
-}
 
 // Provider returns the Tinkerbell terraform provider.
 func Provider() *schema.Provider {
@@ -42,15 +37,34 @@ func Provider() *schema.Provider {
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	if v := d.Get("grpc_authority").(string); v != "" {
-		if err := os.Setenv("TINKERBELL_GRPC_AUTHORITY", v); err != nil {
+type tinkClientConfig struct {
+	providerConfig *schema.ResourceData
+	client         *tinkClient
+	clientMutex    sync.Mutex
+}
+
+type tinkClient struct {
+	templateClient template.TemplateClient
+	workflowClient workflow.WorkflowSvcClient
+	hardwareClient hardware.HardwareServiceClient
+}
+
+func (tc *tinkClientConfig) New() (*tinkClient, error) {
+	tc.clientMutex.Lock()
+	defer tc.clientMutex.Unlock()
+
+	if tc.client != nil {
+		return tc.client, nil
+	}
+
+	if grpcAuthority := tc.providerConfig.Get("grpc_authority").(string); grpcAuthority != "" {
+		if err := os.Setenv("TINKERBELL_GRPC_AUTHORITY", grpcAuthority); err != nil {
 			return nil, fmt.Errorf("setting TINKERBELL_GRPC_AUTHORITY environment variable: %w", err)
 		}
 	}
 
-	if v := d.Get("cert_url").(string); v != "" {
-		if err := os.Setenv("TINKERBELL_CERT_URL", v); err != nil {
+	if certURL := tc.providerConfig.Get("cert_url").(string); certURL != "" {
+		if err := os.Setenv("TINKERBELL_CERT_URL", certURL); err != nil {
 			return nil, fmt.Errorf("setting TINKERBELL_CERT_URL environment variable: %w", err)
 		}
 	}
@@ -60,9 +74,17 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, fmt.Errorf("creating tink client: %w", err)
 	}
 
-	return &tinkClient{
-		TemplateClient: template.NewTemplateClient(conn),
-		WorkflowClient: workflow.NewWorkflowSvcClient(conn),
-		HardwareClient: hardware.NewHardwareServiceClient(conn),
+	tc.client = &tinkClient{
+		templateClient: template.NewTemplateClient(conn),
+		workflowClient: workflow.NewWorkflowSvcClient(conn),
+		hardwareClient: hardware.NewHardwareServiceClient(conn),
+	}
+
+	return tc.client, nil
+}
+
+func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	return &tinkClientConfig{
+		providerConfig: d,
 	}, nil
 }

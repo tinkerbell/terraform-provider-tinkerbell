@@ -80,7 +80,12 @@ func validateHardwareData(m interface{}, p cty.Path) diag.Diagnostics {
 }
 
 func resourceHardwareCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).HardwareClient
+	tc, err := m.(*tinkClientConfig).New()
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating Tink client: %w", err))
+	}
+
+	c := tc.hardwareClient
 
 	hw := pkg.HardwareWrapper{}
 
@@ -106,7 +111,12 @@ func resourceHardwareCreate(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func resourceHardwareUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).HardwareClient
+	tc, err := m.(*tinkClientConfig).New()
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating Tink client: %w", err))
+	}
+
+	c := tc.hardwareClient
 
 	hw := pkg.HardwareWrapper{}
 
@@ -125,6 +135,8 @@ func resourceHardwareUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if _, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware}); err != nil {
 		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
 	}
+
+	d.SetId(hw.Hardware.Id)
 
 	return nil
 }
@@ -158,7 +170,12 @@ func getHardware(ctx context.Context, c hardware.HardwareServiceClient, uuid str
 }
 
 func resourceHardwareRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).HardwareClient
+	tc, err := m.(*tinkClientConfig).New()
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating Tink client: %w", err))
+	}
+
+	c := tc.hardwareClient
 
 	h, err := getHardware(ctx, c, d.Id())
 	if err != nil {
@@ -184,7 +201,12 @@ func resourceHardwareRead(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceHardwareDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).HardwareClient
+	tc, err := m.(*tinkClientConfig).New()
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating Tink client: %w", err))
+	}
+
+	c := tc.hardwareClient
 
 	req := hardware.DeleteRequest{
 		Id: d.Id(),

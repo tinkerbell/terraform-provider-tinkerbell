@@ -88,7 +88,12 @@ func getTemplate(ctx context.Context, c template.TemplateClient, id string) (*te
 }
 
 func resourceTemplateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).TemplateClient
+	tc, err := m.(*tinkClientConfig).New()
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating Tink client: %w", err))
+	}
+
+	c := tc.templateClient
 
 	req := template.WorkflowTemplate{
 		Name: d.Get("name").(string),
@@ -106,7 +111,12 @@ func resourceTemplateCreate(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func resourceTemplateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).TemplateClient
+	tc, err := m.(*tinkClientConfig).New()
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating Tink client: %w", err))
+	}
+
+	c := tc.templateClient
 
 	t, err := getTemplate(ctx, c, d.Id())
 	if err != nil {
@@ -136,7 +146,12 @@ func resourceTemplateRead(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceTemplateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).TemplateClient
+	tc, err := m.(*tinkClientConfig).New()
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating Tink client: %w", err))
+	}
+
+	c := tc.templateClient
 
 	t, err := getTemplate(ctx, c, d.Id())
 	if err != nil {
@@ -161,7 +176,12 @@ func resourceTemplateDelete(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func resourceTemplateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).TemplateClient
+	tc, err := m.(*tinkClientConfig).New()
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating Tink client: %w", err))
+	}
+
+	c := tc.templateClient
 
 	t, err := getTemplate(ctx, c, d.Id())
 	if err != nil {

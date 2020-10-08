@@ -36,7 +36,12 @@ func resourceWorkflow() *schema.Resource {
 }
 
 func resourceWorkflowCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).WorkflowClient
+	tc, err := m.(*tinkClientConfig).New()
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating Tink client: %w", err))
+	}
+
+	c := tc.workflowClient
 
 	req := workflow.CreateRequest{
 		Template: d.Get("template").(string),
@@ -82,7 +87,12 @@ func getWorkflow(ctx context.Context, c workflow.WorkflowSvcClient, uuid string)
 }
 
 func resourceWorkflowRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).WorkflowClient
+	tc, err := m.(*tinkClientConfig).New()
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating Tink client: %w", err))
+	}
+
+	c := tc.workflowClient
 
 	wf, err := getWorkflow(ctx, c, d.Id())
 	if err != nil {
@@ -99,7 +109,12 @@ func resourceWorkflowRead(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceWorkflowDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*tinkClient).WorkflowClient
+	tc, err := m.(*tinkClientConfig).New()
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating Tink client: %w", err))
+	}
+
+	c := tc.workflowClient
 
 	wf, err := getWorkflow(ctx, c, d.Id())
 	if err != nil {
