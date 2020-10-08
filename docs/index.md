@@ -97,6 +97,10 @@ resource "tinkerbell_workflow" "foo" {
   hardwares = <<EOF
 {"device_1":"ff:ff:ff:ff:ff:ff"}
 EOF
+
+  depends_on = [
+    tinkerbell_hardware.foo,
+  ]
 }
 ```
 
