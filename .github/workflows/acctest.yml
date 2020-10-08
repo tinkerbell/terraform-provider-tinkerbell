@@ -1,0 +1,71 @@
+name: Acceptance Tests
+on:
+  pull_request:
+    paths-ignore:
+      - 'LICENSE'
+      - '**.md'
+      - 'docs/**'
+  push:
+    paths-ignore:
+      - 'LICENSE'
+      - '**.md'
+      - 'docs/**'
+  schedule:
+    - cron: '0 13 * * *'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+
+      - name: Set up Go
+        uses: actions/setup-go@v2.1.2
+        with:
+          go-version: '1.15'
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2.3.2
+
+      - name: Get dependencies
+        run: make download
+
+      - name: Build
+        run: make build
+
+  test:
+    name: Matrix Test
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - stable
+        terraform:
+          - '0.12.29'
+          - '0.13.3'
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2.1.2
+        with:
+          go-version: '1.15'
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2.3.2
+
+      - name: Get dependencies
+        run: make download
+
+      - name: Start Tinkerbell server
+        run: make test-up
+
+      - name: TF acceptance tests
+        timeout-minutes: 120
+        env:
+          TF_ACC_TERRAFORM_VERSION: ${{ matrix.terraform }}
+        run: make testacc

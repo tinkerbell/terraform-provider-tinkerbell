@@ -45,7 +45,7 @@ release:
   # Visit your project's GitHub Releases page to publish this release.
   draft: true
   github:
-    owner: flexkube
-    name: terraform-provider-flexkube
+    owner: kinvolk
+    name: terraform-provider-tinkerbell
 changelog:
   skip: true
