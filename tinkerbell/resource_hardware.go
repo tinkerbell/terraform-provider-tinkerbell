@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"reflect"
+	"strings"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -102,6 +103,23 @@ func validateHardwareData(m interface{}, p cty.Path) diag.Diagnostics {
 	return nil
 }
 
+const (
+	serializationError = "could not serialize access due to read/write dependencies among transactions"
+)
+
+func retryOnSerializationError(f func() error) error {
+	err := f()
+	if err == nil {
+		return nil
+	}
+
+	if strings.HasSuffix(err.Error(), serializationError) {
+		return retryOnSerializationError(f)
+	}
+
+	return err
+}
+
 func resourceHardwareCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tc, err := m.(*tinkClientConfig).New()
 	if err != nil {
@@ -124,7 +142,11 @@ func resourceHardwareCreate(ctx context.Context, d *schema.ResourceData, m inter
 		return diagsFromErr(fmt.Errorf("hardware ID %q already exists", hw.Hardware.Id))
 	}
 
-	if _, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware}); err != nil {
+	if err := retryOnSerializationError(func() error {
+		_, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware})
+
+		return err
+	}); err != nil {
 		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
 	}
 
@@ -155,7 +177,11 @@ func resourceHardwareUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	// We can skip error checking here, validate function should already validate it.
 	_ = json.Unmarshal([]byte(d.Get(dataAttribute).(string)), &hw)
 
-	if _, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware}); err != nil {
+	if err := retryOnSerializationError(func() error {
+		_, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware})
+
+		return err
+	}); err != nil {
 		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
 	}
 
@@ -235,7 +261,11 @@ func resourceHardwareDelete(ctx context.Context, d *schema.ResourceData, m inter
 		Id: d.Id(),
 	}
 
-	if _, err := c.Delete(ctx, &req); err != nil {
+	if err := retryOnSerializationError(func() error {
+		_, err := c.Delete(ctx, &req)
+
+		return err
+	}); err != nil {
 		return diagsFromErr(fmt.Errorf("removing hardware failed: %w", err))
 	}
 

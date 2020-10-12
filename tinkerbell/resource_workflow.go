@@ -48,14 +48,16 @@ func resourceWorkflowCreate(ctx context.Context, d *schema.ResourceData, m inter
 		Hardware: d.Get("hardwares").(string),
 	}
 
-	res, err := c.CreateWorkflow(ctx, &req)
-	if err != nil {
-		return diagsFromErr(fmt.Errorf("creating workflow: %w", err))
-	}
+	return diagsFromErr(retryOnSerializationError(func() error {
+		res, err := c.CreateWorkflow(ctx, &req)
+		if err != nil {
+			return fmt.Errorf("creating workflow: %w", err)
+		}
 
-	d.SetId(res.Id)
+		d.SetId(res.Id)
 
-	return nil
+		return nil
+	}))
 }
 
 func getWorkflow(ctx context.Context, c workflow.WorkflowSvcClient, uuid string) (*workflow.Workflow, error) {
@@ -131,7 +133,11 @@ func resourceWorkflowDelete(ctx context.Context, d *schema.ResourceData, m inter
 		Id: d.Id(),
 	}
 
-	if _, err := c.DeleteWorkflow(ctx, &req); err != nil {
+	if err := retryOnSerializationError(func() error {
+		_, err := c.DeleteWorkflow(ctx, &req)
+
+		return err
+	}); err != nil {
 		return diagsFromErr(fmt.Errorf("removing workflow %q: %w", d.Id(), err))
 	}
 

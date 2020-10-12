@@ -48,3 +48,20 @@ func TestAccWorkflow_basic(t *testing.T) {
 		},
 	})
 }
+
+func TestAccWorkflow_parallel(t *testing.T) {
+	config := ""
+	for i := 0; i < 10; i++ {
+		config += testAccWorkflow(t, i)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+			},
+		},
+	})
+}

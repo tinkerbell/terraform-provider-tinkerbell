@@ -100,14 +100,16 @@ func resourceTemplateCreate(ctx context.Context, d *schema.ResourceData, m inter
 		Data: d.Get("content").(string),
 	}
 
-	res, err := c.CreateTemplate(ctx, &req)
-	if err != nil {
-		return diagsFromErr(fmt.Errorf("creating template: %w", err))
-	}
+	return diagsFromErr(retryOnSerializationError(func() error {
+		res, err := c.CreateTemplate(ctx, &req)
+		if err != nil {
+			return fmt.Errorf("creating template: %w", err)
+		}
 
-	d.SetId(res.Id)
+		d.SetId(res.Id)
 
-	return nil
+		return nil
+	}))
 }
 
 func resourceTemplateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -168,7 +170,11 @@ func resourceTemplateDelete(ctx context.Context, d *schema.ResourceData, m inter
 		Id: d.Id(),
 	}
 
-	if _, err := c.DeleteTemplate(ctx, &req); err != nil {
+	if err := retryOnSerializationError(func() error {
+		_, err := c.DeleteTemplate(ctx, &req)
+
+		return err
+	}); err != nil {
 		return diagsFromErr(fmt.Errorf("removing template: %w", err))
 	}
 
@@ -198,7 +204,11 @@ func resourceTemplateUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		Data: d.Get("content").(string),
 	}
 
-	if _, err := c.UpdateTemplate(ctx, &req); err != nil {
+	if err := retryOnSerializationError(func() error {
+		_, err := c.UpdateTemplate(ctx, &req)
+
+		return err
+	}); err != nil {
 		return diagsFromErr(fmt.Errorf("updating template: %w", err))
 	}
 
