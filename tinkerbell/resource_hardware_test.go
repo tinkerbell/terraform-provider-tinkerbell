@@ -58,14 +58,14 @@ func testAccHardwareConfig(uuid string, mac string) string {
 `, uuid, mac)
 }
 
-func testAccHardware(data string) string {
+func testAccHardware(data, name string) string {
 	return fmt.Sprintf(`
-resource "tinkerbell_hardware" "foo" {
+resource "tinkerbell_hardware" "%s" {
 	data = <<EOF
 %s
 EOF
 }
-`, data)
+`, name, data)
 }
 
 func newUUID(t *testing.T) string {
@@ -86,7 +86,7 @@ func TestAccHardware_create(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccHardware(testAccHardwareConfig(rUUID, rMAC)),
+				Config: testAccHardware(testAccHardwareConfig(rUUID, rMAC), "foo"),
 			},
 		},
 	})
@@ -102,10 +102,10 @@ func TestAccHardware_detectChanges(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccHardware(testAccHardwareConfig(rUUID, rMAC)),
+				Config: testAccHardware(testAccHardwareConfig(rUUID, rMAC), "foo"),
 			},
 			{
-				Config:             testAccHardware(testAccHardwareConfig(rUUID, nMAC)),
+				Config:             testAccHardware(testAccHardwareConfig(rUUID, nMAC), "foo"),
 				ExpectNonEmptyPlan: true,
 				PlanOnly:           true,
 			},
@@ -123,10 +123,10 @@ func TestAccHardware_update(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccHardware(testAccHardwareConfig(rUUID, rMAC)),
+				Config: testAccHardware(testAccHardwareConfig(rUUID, rMAC), "foo"),
 			},
 			{
-				Config: testAccHardware(testAccHardwareConfig(rUUID, nMAC)),
+				Config: testAccHardware(testAccHardwareConfig(rUUID, nMAC), "foo"),
 			},
 		},
 	})
@@ -142,10 +142,10 @@ func TestAccHardware_updateUUID(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccHardware(testAccHardwareConfig(rUUID, rMAC)),
+				Config: testAccHardware(testAccHardwareConfig(rUUID, rMAC), "foo"),
 			},
 			{
-				Config: testAccHardware(testAccHardwareConfig(nUUID, rMAC)),
+				Config: testAccHardware(testAccHardwareConfig(nUUID, rMAC), "foo"),
 			},
 		},
 	})
@@ -160,10 +160,10 @@ func TestAccHardware_ignoreWhitespace(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccHardware(testAccHardwareConfig(rUUID, rMAC)),
+				Config: testAccHardware(testAccHardwareConfig(rUUID, rMAC), "foo"),
 			},
 			{
-				Config:             testAccHardware(fmt.Sprintf("%s\n", testAccHardwareConfig(rUUID, rMAC))),
+				Config:             testAccHardware(fmt.Sprintf("%s\n", testAccHardwareConfig(rUUID, rMAC)), "foo"),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
@@ -177,7 +177,7 @@ func TestAccHardware_validateData(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccHardware("bad json"),
+				Config:      testAccHardware("bad json", "foo"),
 				ExpectError: regexp.MustCompile(`failed decoding 'data' as JSON`),
 			},
 		},

@@ -10,13 +10,13 @@ import (
 
 func testAccTemplate(name, content string) string {
 	return fmt.Sprintf(`
-resource "tinkerbell_template" "foo" {
+resource "tinkerbell_template" "a%s" {
 	name    = "%s"
 	content = <<EOF
 %s
 EOF
 }
-`, name, content)
+`, name, name, content)
 }
 
 func testAccTemplateContent(timeout int) string {
