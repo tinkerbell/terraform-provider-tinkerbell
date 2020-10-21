@@ -22,7 +22,7 @@ For local builds, run `make` which will build the binary, run unit tests and lin
 
 ## Releasing
 
-This project use `goreleaser` for releasing. To release new version, follow the following steps:
+This project use `goreleaser` with GitHub actions for releasing. To release new version, follow the following steps:
 
 * Add a changelog for new release to CHANGELOG.md file.
 
@@ -37,12 +37,10 @@ This project use `goreleaser` for releasing. To release new version, follow the 
   git push origin v0.4.7
   ```
 
-* Run `make release` to create a GitHub Release:
-  ```sh
-  GITHUB_TOKEN=githubtoken GPG_FINGERPRINT=gpgfingerprint make release
-  ```
+* Once tag is pushed, GitHub action should trigger and create a release for a given tag.
 
-* Go to newly create [GitHub release](https://github.com/tinkerbell/terraform-provider-tinkerbell/releases/tag/v0.4.7), verify that the changelog and artefacts looks correct and publish it.
+* Go to newly create [GitHub release](https://github.com/tinkerbell/terraform-provider-tinkerbell/releases/tag/v0.4.7),
+  add a changelog from CHANGELOG.md file, verify that artefacts looks correct and publish it.
 
 ## Authors
 
