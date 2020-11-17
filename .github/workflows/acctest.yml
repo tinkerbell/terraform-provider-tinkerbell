@@ -21,7 +21,7 @@ jobs:
     steps:
 
       - name: Set up Go
-        uses: actions/setup-go@v2.1.2
+        uses: actions/setup-go@v2
         with:
           go-version: '1.15.2'
         id: go
@@ -50,7 +50,7 @@ jobs:
           - '0.13.4'
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v2.1.2
+        uses: actions/setup-go@v2
         with:
           go-version: '1.15.2'
         id: go
