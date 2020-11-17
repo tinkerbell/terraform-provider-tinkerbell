@@ -21,9 +21,9 @@ jobs:
     steps:
 
       - name: Set up Go
-        uses: actions/setup-go@v2.1.2
+        uses: actions/setup-go@v2
         with:
-          go-version: '1.15.2'
+          go-version: '1.15.4'
         id: go
 
       - name: Check out code into the Go module directory
@@ -50,9 +50,9 @@ jobs:
           - '0.13.4'
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v2.1.2
+        uses: actions/setup-go@v2
         with:
-          go-version: '1.15.2'
+          go-version: '1.15.4'
         id: go
 
       - name: Check out code into the Go module directory
