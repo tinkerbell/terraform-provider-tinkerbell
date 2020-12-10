@@ -60,7 +60,7 @@ func resourceWorkflowCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}))
 }
 
-func getWorkflow(ctx context.Context, c workflow.WorkflowSvcClient, uuid string) (*workflow.Workflow, error) {
+func getWorkflow(ctx context.Context, c workflow.WorkflowServiceClient, uuid string) (*workflow.Workflow, error) {
 	list, err := c.ListWorkflows(ctx, &workflow.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("getting all workflow entries: %w", err)

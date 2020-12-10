@@ -44,8 +44,8 @@ type tinkClientConfig struct {
 }
 
 type tinkClient struct {
-	templateClient template.TemplateClient
-	workflowClient workflow.WorkflowSvcClient
+	templateClient template.TemplateServiceClient
+	workflowClient workflow.WorkflowServiceClient
 	hardwareClient hardware.HardwareServiceClient
 }
 
@@ -75,8 +75,8 @@ func (tc *tinkClientConfig) New() (*tinkClient, error) {
 	}
 
 	tc.client = &tinkClient{
-		templateClient: template.NewTemplateClient(conn),
-		workflowClient: workflow.NewWorkflowSvcClient(conn),
+		templateClient: template.NewTemplateServiceClient(conn),
+		workflowClient: workflow.NewWorkflowServiceClient(conn),
 		hardwareClient: hardware.NewHardwareServiceClient(conn),
 	}
 

@@ -16,7 +16,7 @@ services:
       retries: 30
 
   tink-server:
-    image: ${TINKERBELL_TINK_SERVER_IMAGE:-quay.io/tinkerbell/tink:sha-adb49da}
+    image: ${TINKERBELL_TINK_SERVER_IMAGE:-quay.io/tinkerbell/tink:sha-0e8e5733}
     environment:
       FACILITY: ${FACILITY:-onprem}
       PACKET_ENV: ${PACKET_ENV:-testing}
@@ -38,6 +38,8 @@ services:
         condition: service_healthy
       certs:
         condition: service_healthy
+      tink-server-migration:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- 127.0.0.1:42114/cert"] # port needs to match TINKERBELL_HTTP_AUTHORITY
       interval: 5s
@@ -55,8 +57,6 @@ services:
       POSTGRES_DB: tinkerbell
       POSTGRES_PASSWORD: tinkerbell
       POSTGRES_USER: tinkerbell
-    volumes:
-      - ./db/tinkerbell-init.sql:/docker-entrypoint-initdb.d/tinkerbell-init.sql:ro
     ports:
       - 5432:5432
     healthcheck:
@@ -64,6 +64,27 @@ services:
       interval: 1s
       timeout: 1s
       retries: 30
+
+  tink-server-migration:
+    image: ${TINKERBELL_TINK_SERVER_IMAGE:-quay.io/tinkerbell/tink:sha-0e8e5733}
+    environment:
+      ONLY_MIGRATION: "true"
+      FACILITY: ${FACILITY:-onprem}
+      PGDATABASE: tinkerbell
+      PGHOST: db
+      PGPASSWORD: tinkerbell
+      PGPORT: 5432
+      PGSSLMODE: disable
+      PGUSER: tinkerbell
+      TINKERBELL_GRPC_AUTHORITY: :42113
+      TINKERBELL_HTTP_AUTHORITY: :42114
+      TINK_AUTH_USERNAME: ${TINKERBELL_TINK_USERNAME:-admin}
+      TINK_AUTH_PASSWORD: ${TINKERBELL_TINK_PASSWORD:-admin}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./state/certs:/certs/${FACILITY:-onprem}
 
 volumes:
   certs:
