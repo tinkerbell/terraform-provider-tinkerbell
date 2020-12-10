@@ -15,21 +15,6 @@ GO_TESTS=^.*$
 
 GOLANGCI_LINT_VERSION=v1.33.0
 
-# Disabled linters:
-#
-# - gci as we use gofmt for formatting.
-#
-# - goerr113 as this code do not export any API returning errors
-#   and internally there is no need to use typed errors.
-#
-# - testpackage as Terraform testing convention do not encourage to use them.
-#
-# - godox as it is OK to have TODOs in the code.
-#
-# - exhaustivestruct as with this code there is many structs where we don't use all fields.
-#
-DISABLED_LINTERS=gci,goerr113,testpackage,godox,exhaustivestruct
-
 BIN_PATH=$$HOME/bin
 TF_ACC=
 TINKERBELL_GRPC_AUTHORITY=127.0.0.1:42113
@@ -68,7 +53,7 @@ test: build-test ## Run unit tests matching GO_TESTS in GO_PACKAGES.
 
 .PHONY: lint
 lint: build build-test ## Compile code and run linter.
-	golangci-lint run --enable-all --disable=$(DISABLED_LINTERS) --max-same-issues=0 --max-issues-per-linter=0 --build-tags integration --timeout 10m --exclude-use-default=false $(GO_PACKAGES)
+	golangci-lint run $(GO_PACKAGES)
 
 .PHONY: build-test
 build-test: # Compile unit tests. Useful for checking syntax errors before running unit tests.
