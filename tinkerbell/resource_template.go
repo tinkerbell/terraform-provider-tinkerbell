@@ -99,7 +99,7 @@ func resourceTemplateCreate(ctx context.Context, d *schema.ResourceData, m inter
 		Data: d.Get("content").(string),
 	}
 
-	return diagsFromErr(retryOnSerializationError(func() error {
+	return diagsFromErr(retryOnTransientError(func() error {
 		res, err := c.CreateTemplate(ctx, &req)
 		if err != nil {
 			return fmt.Errorf("creating template: %w", err)
@@ -173,7 +173,7 @@ func resourceTemplateDelete(ctx context.Context, d *schema.ResourceData, m inter
 		},
 	}
 
-	if err := retryOnSerializationError(func() error {
+	if err := retryOnTransientError(func() error {
 		_, err := c.DeleteTemplate(ctx, &req)
 
 		return err
@@ -207,7 +207,7 @@ func resourceTemplateUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		Data: d.Get("content").(string),
 	}
 
-	if err := retryOnSerializationError(func() error {
+	if err := retryOnTransientError(func() error {
 		_, err := c.UpdateTemplate(ctx, &req)
 
 		return err
