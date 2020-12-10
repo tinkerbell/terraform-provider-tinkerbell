@@ -146,7 +146,7 @@ func resourceHardwareCreate(ctx context.Context, d *schema.ResourceData, m inter
 	if err := retryOnTransientError(func() error {
 		_, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware})
 
-		return err
+		return err //nolint:wrapcheck
 	}); err != nil {
 		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
 	}
@@ -181,7 +181,7 @@ func resourceHardwareUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if err := retryOnTransientError(func() error {
 		_, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware})
 
-		return err
+		return err //nolint:wrapcheck
 	}); err != nil {
 		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
 	}
@@ -265,7 +265,7 @@ func resourceHardwareDelete(ctx context.Context, d *schema.ResourceData, m inter
 	if err := retryOnTransientError(func() error {
 		_, err := c.Delete(ctx, &req)
 
-		return err
+		return err //nolint:wrapcheck
 	}); err != nil {
 		return diagsFromErr(fmt.Errorf("removing hardware failed: %w", err))
 	}

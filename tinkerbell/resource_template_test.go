@@ -56,6 +56,8 @@ tasks:
 }
 
 func TestAccTemplate_create(t *testing.T) {
+	t.Parallel()
+
 	name := newUUID(t)
 
 	resource.Test(t, resource.TestCase{
@@ -70,6 +72,8 @@ func TestAccTemplate_create(t *testing.T) {
 }
 
 func TestAccTemplate_detectChanges(t *testing.T) {
+	t.Parallel()
+
 	name := newUUID(t)
 
 	resource.Test(t, resource.TestCase{
@@ -89,6 +93,8 @@ func TestAccTemplate_detectChanges(t *testing.T) {
 }
 
 func TestAccTemplate_update(t *testing.T) {
+	t.Parallel()
+
 	name := newUUID(t)
 
 	resource.Test(t, resource.TestCase{
@@ -106,6 +112,8 @@ func TestAccTemplate_update(t *testing.T) {
 }
 
 func TestAccTemplate_validateData(t *testing.T) {
+	t.Parallel()
+
 	name := newUUID(t)
 
 	resource.Test(t, resource.TestCase{

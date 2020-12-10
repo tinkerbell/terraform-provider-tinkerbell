@@ -136,7 +136,7 @@ func resourceWorkflowDelete(ctx context.Context, d *schema.ResourceData, m inter
 	if err := retryOnTransientError(func() error {
 		_, err := c.DeleteWorkflow(ctx, &req)
 
-		return err
+		return err //nolint:wrapcheck
 	}); err != nil {
 		return diagsFromErr(fmt.Errorf("removing workflow %q: %w", d.Id(), err))
 	}

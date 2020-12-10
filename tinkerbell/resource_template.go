@@ -176,7 +176,7 @@ func resourceTemplateDelete(ctx context.Context, d *schema.ResourceData, m inter
 	if err := retryOnTransientError(func() error {
 		_, err := c.DeleteTemplate(ctx, &req)
 
-		return err
+		return err //nolint:wrapcheck
 	}); err != nil {
 		return diagsFromErr(fmt.Errorf("removing template: %w", err))
 	}
@@ -210,7 +210,7 @@ func resourceTemplateUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if err := retryOnTransientError(func() error {
 		_, err := c.UpdateTemplate(ctx, &req)
 
-		return err
+		return err //nolint:wrapcheck
 	}); err != nil {
 		return diagsFromErr(fmt.Errorf("updating template: %w", err))
 	}

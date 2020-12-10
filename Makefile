@@ -13,7 +13,7 @@ GOBUILD=CGO_ENABLED=$(CGO_ENABLED) $(GOCMD) build -v -buildmode=exe -ldflags $(L
 GO_PACKAGES=./...
 GO_TESTS=^.*$
 
-GOLANGCI_LINT_VERSION=v1.30.0
+GOLANGCI_LINT_VERSION=v1.33.0
 
 # Disabled linters:
 #
@@ -25,7 +25,10 @@ GOLANGCI_LINT_VERSION=v1.30.0
 # - testpackage as Terraform testing convention do not encourage to use them.
 #
 # - godox as it is OK to have TODOs in the code.
-DISABLED_LINTERS=gci,goerr113,testpackage,godox
+#
+# - exhaustivestruct as with this code there is many structs where we don't use all fields.
+#
+DISABLED_LINTERS=gci,goerr113,testpackage,godox,exhaustivestruct
 
 BIN_PATH=$$HOME/bin
 TF_ACC=
