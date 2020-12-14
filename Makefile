@@ -115,7 +115,7 @@ endif
 .PHONY: release
 release: release-env-check all
 release: ## Creates a GitHub release using goreleaser.
-	GITHUB_TOKEN=$(GITHUB_TOKEN) GPG_FINGERPRINT=$(GPG_FINGERPRINT) bash -c 'go run github.com/goreleaser/goreleaser release --release-notes <(go run github.com/rcmachado/changelog show $(RELEASE_VERSION))'
+	GITHUB_TOKEN=$(GITHUB_TOKEN) GPG_FINGERPRINT=$(GPG_FINGERPRINT) bash -c 'go run -modfile=go.tools.mod github.com/goreleaser/goreleaser release --release-notes <(go run -modfile=go.tools.mod github.com/rcmachado/changelog show $(RELEASE_VERSION))'
 
 .PHONY: install-tools
 install-tools: ## Installs development tools required for creating a release.
