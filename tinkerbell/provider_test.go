@@ -22,6 +22,8 @@ func init() {
 }
 
 func TestProvider(t *testing.T) {
+	t.Parallel()
+
 	if err := Provider().InternalValidate(); err != nil {
 		t.Fatalf("Internal provider validation: %v", err)
 	}

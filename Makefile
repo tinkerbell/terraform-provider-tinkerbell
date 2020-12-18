@@ -13,19 +13,7 @@ GOBUILD=CGO_ENABLED=$(CGO_ENABLED) $(GOCMD) build -v -buildmode=exe -ldflags $(L
 GO_PACKAGES=./...
 GO_TESTS=^.*$
 
-GOLANGCI_LINT_VERSION=v1.30.0
-
-# Disabled linters:
-#
-# - gci as we use gofmt for formatting.
-#
-# - goerr113 as this code do not export any API returning errors
-#   and internally there is no need to use typed errors.
-#
-# - testpackage as Terraform testing convention do not encourage to use them.
-#
-# - godox as it is OK to have TODOs in the code.
-DISABLED_LINTERS=gci,goerr113,testpackage,godox
+GOLANGCI_LINT_VERSION=v1.33.0
 
 BIN_PATH=$$HOME/bin
 TF_ACC=
@@ -65,7 +53,7 @@ test: build-test ## Run unit tests matching GO_TESTS in GO_PACKAGES.
 
 .PHONY: lint
 lint: build build-test ## Compile code and run linter.
-	golangci-lint run --enable-all --disable=$(DISABLED_LINTERS) --max-same-issues=0 --max-issues-per-linter=0 --build-tags integration --timeout 10m --exclude-use-default=false $(GO_PACKAGES)
+	golangci-lint run $(GO_PACKAGES)
 
 .PHONY: build-test
 build-test: # Compile unit tests. Useful for checking syntax errors before running unit tests.
@@ -115,7 +103,7 @@ endif
 .PHONY: release
 release: release-env-check all
 release: ## Creates a GitHub release using goreleaser.
-	GITHUB_TOKEN=$(GITHUB_TOKEN) GPG_FINGERPRINT=$(GPG_FINGERPRINT) bash -c 'go run github.com/goreleaser/goreleaser release --release-notes <(go run github.com/rcmachado/changelog show $(RELEASE_VERSION))'
+	GITHUB_TOKEN=$(GITHUB_TOKEN) GPG_FINGERPRINT=$(GPG_FINGERPRINT) bash -c 'go run -modfile=go.tools.mod github.com/goreleaser/goreleaser release --release-notes <(go run -modfile=go.tools.mod github.com/rcmachado/changelog show $(RELEASE_VERSION))'
 
 .PHONY: install-tools
 install-tools: ## Installs development tools required for creating a release.

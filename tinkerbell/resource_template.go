@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/tinkerbell/tink/pkg"
 	"github.com/tinkerbell/tink/protos/template"
+	"github.com/tinkerbell/tink/workflow"
 )
 
 func resourceTemplate() *schema.Resource {
@@ -47,20 +47,19 @@ func validateTemplate(m interface{}, p cty.Path) diag.Diagnostics {
 		return diagsFromErr(fmt.Errorf("template content must not be empty"))
 	}
 
-	wf, err := pkg.ParseYAML([]byte(m.(string)))
-	if err != nil {
+	if _, err := workflow.Parse([]byte(m.(string))); err != nil {
 		return diagsFromErr(fmt.Errorf("parsing template: %w", err))
-	}
-
-	if err := pkg.ValidateTemplate(wf); err != nil {
-		return diagsFromErr(fmt.Errorf("validating template: %w", err))
 	}
 
 	return nil
 }
 
-func getTemplate(ctx context.Context, c template.TemplateClient, id string) (*template.WorkflowTemplate, error) {
-	list, err := c.ListTemplates(ctx, &template.Empty{})
+func getTemplate(ctx context.Context, c template.TemplateServiceClient, id string) (*template.WorkflowTemplate, error) {
+	list, err := c.ListTemplates(ctx, &template.ListRequest{
+		FilterBy: &template.ListRequest_Name{
+			Name: "*",
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("getting all template entries: %w", err)
 	}
@@ -100,7 +99,7 @@ func resourceTemplateCreate(ctx context.Context, d *schema.ResourceData, m inter
 		Data: d.Get("content").(string),
 	}
 
-	return diagsFromErr(retryOnSerializationError(func() error {
+	return diagsFromErr(retryOnTransientError(func() error {
 		res, err := c.CreateTemplate(ctx, &req)
 		if err != nil {
 			return fmt.Errorf("creating template: %w", err)
@@ -132,12 +131,14 @@ func resourceTemplateRead(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	req := template.GetRequest{
-		Id: d.Id(),
+		GetBy: &template.GetRequest_Id{
+			Id: d.Id(),
+		},
 	}
 
 	t, err = c.GetTemplate(ctx, &req)
 	if err != nil {
-		return diagsFromErr(fmt.Errorf("getting template %q: %w", req.Id, err))
+		return diagsFromErr(fmt.Errorf("getting template %q: %w", d.Id(), err))
 	}
 
 	if err := d.Set("content", t.Data); err != nil {
@@ -167,13 +168,15 @@ func resourceTemplateDelete(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	req := template.GetRequest{
-		Id: d.Id(),
+		GetBy: &template.GetRequest_Id{
+			Id: d.Id(),
+		},
 	}
 
-	if err := retryOnSerializationError(func() error {
+	if err := retryOnTransientError(func() error {
 		_, err := c.DeleteTemplate(ctx, &req)
 
-		return err
+		return err //nolint:wrapcheck
 	}); err != nil {
 		return diagsFromErr(fmt.Errorf("removing template: %w", err))
 	}
@@ -204,10 +207,10 @@ func resourceTemplateUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		Data: d.Get("content").(string),
 	}
 
-	if err := retryOnSerializationError(func() error {
+	if err := retryOnTransientError(func() error {
 		_, err := c.UpdateTemplate(ctx, &req)
 
-		return err
+		return err //nolint:wrapcheck
 	}); err != nil {
 		return diagsFromErr(fmt.Errorf("updating template: %w", err))
 	}

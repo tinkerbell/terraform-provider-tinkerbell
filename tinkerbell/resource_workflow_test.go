@@ -38,6 +38,8 @@ EOF
 }
 
 func TestAccWorkflow_basic(t *testing.T) {
+	t.Parallel()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
@@ -50,6 +52,8 @@ func TestAccWorkflow_basic(t *testing.T) {
 }
 
 func TestAccWorkflow_parallel(t *testing.T) {
+	t.Parallel()
+
 	config := ""
 	for i := 0; i < 10; i++ {
 		config += testAccWorkflow(t, i)

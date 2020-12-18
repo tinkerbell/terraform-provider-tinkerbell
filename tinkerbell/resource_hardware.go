@@ -104,17 +104,18 @@ func validateHardwareData(m interface{}, p cty.Path) diag.Diagnostics {
 }
 
 const (
-	serializationError = "could not serialize access due to read/write dependencies among transactions"
+	serializationError  = "could not serialize access due to read/write dependencies among transactions"
+	duplicateEventError = `duplicate key value violates unique constraint "events_pkey"`
 )
 
-func retryOnSerializationError(f func() error) error {
+func retryOnTransientError(f func() error) error {
 	err := f()
 	if err == nil {
 		return nil
 	}
 
-	if strings.HasSuffix(err.Error(), serializationError) {
-		return retryOnSerializationError(f)
+	if strings.HasSuffix(err.Error(), serializationError) || strings.HasSuffix(err.Error(), duplicateEventError) {
+		return retryOnTransientError(f)
 	}
 
 	return err
@@ -142,10 +143,10 @@ func resourceHardwareCreate(ctx context.Context, d *schema.ResourceData, m inter
 		return diagsFromErr(fmt.Errorf("hardware ID %q already exists", hw.Hardware.Id))
 	}
 
-	if err := retryOnSerializationError(func() error {
+	if err := retryOnTransientError(func() error {
 		_, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware})
 
-		return err
+		return err //nolint:wrapcheck
 	}); err != nil {
 		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
 	}
@@ -177,10 +178,10 @@ func resourceHardwareUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	// We can skip error checking here, validate function should already validate it.
 	_ = json.Unmarshal([]byte(d.Get(dataAttribute).(string)), &hw)
 
-	if err := retryOnSerializationError(func() error {
+	if err := retryOnTransientError(func() error {
 		_, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware})
 
-		return err
+		return err //nolint:wrapcheck
 	}); err != nil {
 		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
 	}
@@ -261,10 +262,10 @@ func resourceHardwareDelete(ctx context.Context, d *schema.ResourceData, m inter
 		Id: d.Id(),
 	}
 
-	if err := retryOnSerializationError(func() error {
+	if err := retryOnTransientError(func() error {
 		_, err := c.Delete(ctx, &req)
 
-		return err
+		return err //nolint:wrapcheck
 	}); err != nil {
 		return diagsFromErr(fmt.Errorf("removing hardware failed: %w", err))
 	}

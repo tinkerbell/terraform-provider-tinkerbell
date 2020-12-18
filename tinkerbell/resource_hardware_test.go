@@ -78,6 +78,8 @@ func newUUID(t *testing.T) string {
 }
 
 func TestAccHardware_create(t *testing.T) {
+	t.Parallel()
+
 	rUUID := newUUID(t)
 	rMAC := newMAC(t)
 
@@ -93,6 +95,8 @@ func TestAccHardware_create(t *testing.T) {
 }
 
 func TestAccHardware_detectChanges(t *testing.T) {
+	t.Parallel()
+
 	rUUID := newUUID(t)
 	rMAC := newMAC(t)
 	nMAC := newMAC(t)
@@ -114,6 +118,8 @@ func TestAccHardware_detectChanges(t *testing.T) {
 }
 
 func TestAccHardware_update(t *testing.T) {
+	t.Parallel()
+
 	rUUID := newUUID(t)
 	rMAC := newMAC(t)
 	nMAC := newMAC(t)
@@ -133,6 +139,8 @@ func TestAccHardware_update(t *testing.T) {
 }
 
 func TestAccHardware_updateUUID(t *testing.T) {
+	t.Parallel()
+
 	rUUID := newUUID(t)
 	nUUID := newUUID(t)
 	rMAC := newMAC(t)
@@ -152,6 +160,8 @@ func TestAccHardware_updateUUID(t *testing.T) {
 }
 
 func TestAccHardware_ignoreWhitespace(t *testing.T) {
+	t.Parallel()
+
 	rUUID := newUUID(t)
 	rMAC := newMAC(t)
 
@@ -172,6 +182,8 @@ func TestAccHardware_ignoreWhitespace(t *testing.T) {
 }
 
 func TestAccHardware_validateData(t *testing.T) {
+	t.Parallel()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
