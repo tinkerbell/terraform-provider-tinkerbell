@@ -16,7 +16,7 @@ services:
       retries: 30
 
   tink-server:
-    image: ${TINKERBELL_TINK_SERVER_IMAGE:-quay.io/tinkerbell/tink:sha-0e8e5733}
+    image: ${TINKERBELL_TINK_SERVER_IMAGE:-quay.io/tinkerbell/tink:sha-57eb0efb}
     environment:
       FACILITY: ${FACILITY:-onprem}
       PACKET_ENV: ${PACKET_ENV:-testing}
@@ -66,7 +66,7 @@ services:
       retries: 30
 
   tink-server-migration:
-    image: ${TINKERBELL_TINK_SERVER_IMAGE:-quay.io/tinkerbell/tink:sha-0e8e5733}
+    image: ${TINKERBELL_TINK_SERVER_IMAGE:-quay.io/tinkerbell/tink:sha-57eb0efb}
     environment:
       ONLY_MIGRATION: "true"
       FACILITY: ${FACILITY:-onprem}
