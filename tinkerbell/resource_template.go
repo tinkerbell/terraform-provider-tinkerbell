@@ -99,16 +99,14 @@ func resourceTemplateCreate(ctx context.Context, d *schema.ResourceData, m inter
 		Data: d.Get("content").(string),
 	}
 
-	return diagsFromErr(retryOnTransientError(func() error {
-		res, err := c.CreateTemplate(ctx, &req)
-		if err != nil {
-			return fmt.Errorf("creating template: %w", err)
-		}
+	res, err := c.CreateTemplate(ctx, &req)
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating template: %w", err))
+	}
 
-		d.SetId(res.Id)
+	d.SetId(res.Id)
 
-		return nil
-	}))
+	return nil
 }
 
 func resourceTemplateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -207,11 +205,7 @@ func resourceTemplateUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		Data: d.Get("content").(string),
 	}
 
-	if err := retryOnTransientError(func() error {
-		_, err := c.UpdateTemplate(ctx, &req)
-
-		return err //nolint:wrapcheck
-	}); err != nil {
+	if _, err := c.UpdateTemplate(ctx, &req); err != nil {
 		return diagsFromErr(fmt.Errorf("updating template: %w", err))
 	}
 
