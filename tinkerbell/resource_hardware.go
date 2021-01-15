@@ -104,8 +104,7 @@ func validateHardwareData(m interface{}, p cty.Path) diag.Diagnostics {
 }
 
 const (
-	serializationError  = "could not serialize access due to read/write dependencies among transactions"
-	duplicateEventError = `duplicate key value violates unique constraint "events_pkey"`
+	serializationError = "could not serialize access due to read/write dependencies among transactions"
 )
 
 func retryOnTransientError(f func() error) error {
@@ -114,7 +113,7 @@ func retryOnTransientError(f func() error) error {
 		return nil
 	}
 
-	if strings.HasSuffix(err.Error(), serializationError) || strings.HasSuffix(err.Error(), duplicateEventError) {
+	if strings.HasSuffix(err.Error(), serializationError) {
 		return retryOnTransientError(f)
 	}
 
