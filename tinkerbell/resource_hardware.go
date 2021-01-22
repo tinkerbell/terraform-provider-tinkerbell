@@ -104,8 +104,7 @@ func validateHardwareData(m interface{}, p cty.Path) diag.Diagnostics {
 }
 
 const (
-	serializationError  = "could not serialize access due to read/write dependencies among transactions"
-	duplicateEventError = `duplicate key value violates unique constraint "events_pkey"`
+	serializationError = "could not serialize access due to read/write dependencies among transactions"
 )
 
 func retryOnTransientError(f func() error) error {
@@ -114,7 +113,7 @@ func retryOnTransientError(f func() error) error {
 		return nil
 	}
 
-	if strings.HasSuffix(err.Error(), serializationError) || strings.HasSuffix(err.Error(), duplicateEventError) {
+	if strings.HasSuffix(err.Error(), serializationError) {
 		return retryOnTransientError(f)
 	}
 
@@ -143,11 +142,7 @@ func resourceHardwareCreate(ctx context.Context, d *schema.ResourceData, m inter
 		return diagsFromErr(fmt.Errorf("hardware ID %q already exists", hw.Hardware.Id))
 	}
 
-	if err := retryOnTransientError(func() error {
-		_, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware})
-
-		return err //nolint:wrapcheck
-	}); err != nil {
+	if _, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware}); err != nil {
 		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
 	}
 
@@ -178,11 +173,7 @@ func resourceHardwareUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	// We can skip error checking here, validate function should already validate it.
 	_ = json.Unmarshal([]byte(d.Get(dataAttribute).(string)), &hw)
 
-	if err := retryOnTransientError(func() error {
-		_, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware})
-
-		return err //nolint:wrapcheck
-	}); err != nil {
+	if _, err := c.Push(ctx, &hardware.PushRequest{Data: hw.Hardware}); err != nil {
 		return diagsFromErr(fmt.Errorf("pushing hardware data: %w", err))
 	}
 

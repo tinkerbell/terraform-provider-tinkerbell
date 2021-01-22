@@ -48,16 +48,14 @@ func resourceWorkflowCreate(ctx context.Context, d *schema.ResourceData, m inter
 		Hardware: d.Get("hardwares").(string),
 	}
 
-	return diagsFromErr(retryOnTransientError(func() error {
-		res, err := c.CreateWorkflow(ctx, &req)
-		if err != nil {
-			return fmt.Errorf("creating workflow: %w", err)
-		}
+	res, err := c.CreateWorkflow(ctx, &req)
+	if err != nil {
+		return diagsFromErr(fmt.Errorf("creating workflow: %w", err))
+	}
 
-		d.SetId(res.Id)
+	d.SetId(res.Id)
 
-		return nil
-	}))
+	return nil
 }
 
 func getWorkflow(ctx context.Context, c workflow.WorkflowServiceClient, uuid string) (*workflow.Workflow, error) {
