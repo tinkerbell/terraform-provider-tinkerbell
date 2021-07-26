@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 
-	"github.com/kinvolk/terraform-provider-tinkerbell/tinkerbell"
+	"github.com/tinkerbell/terraform-provider-tinkerbell/tinkerbell"
 )
 
 func main() {

@@ -25,13 +25,12 @@ require (
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/tinkerbell/tink v0.0.0-20210104124527-57eb0efb6dbb
+	github.com/tinkerbell/tink v0.0.0-20210705055947-8ea8a0e511be
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	github.com/zclconf/go-cty v1.6.1 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
-	golang.org/x/sys v0.0.0-20210110051926-789bb1bd4061 // indirect
 	golang.org/x/text v0.3.5 // indirect
 	google.golang.org/genproto v0.0.0-20210111173611-c7d5778d165c // indirect
 	google.golang.org/grpc v1.34.0 // indirect
