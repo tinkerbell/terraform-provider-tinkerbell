@@ -1,4 +1,4 @@
-module github.com/kinvolk/terraform-provider-tinkerbell/tools
+module github.com/tinkerbell/terraform-provider-tinkerbell/tools
 
 go 1.15
 
