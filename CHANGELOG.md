@@ -2,7 +2,7 @@
 
 NOTES:
 
-* No new functianality, works with current sandbox
+* No new functionality, works with current sandbox
 
 * Fix GitHub actions and update used Go version [#19](https://github.com/tinkerbell/terraform-provider-tinkerbell/pull/19) 
 * Update Tinkerbell and linter, add linter and codespell to CI [#20](https://github.com/tinkerbell/terraform-provider-tinkerbell/pull/20)
