@@ -2,16 +2,16 @@ name: Acceptance Tests
 on:
   pull_request:
     paths-ignore:
-      - 'LICENSE'
-      - '**.md'
-      - 'docs/**'
+      - "LICENSE"
+      - "**.md"
+      - "docs/**"
   push:
     paths-ignore:
-      - 'LICENSE'
-      - '**.md'
-      - 'docs/**'
+      - "LICENSE"
+      - "**.md"
+      - "docs/**"
   schedule:
-    - cron: '0 13 * * *'
+    - cron: "0 13 * * *"
 
 jobs:
   build:
@@ -19,11 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: '1.15.4'
+          go-version: "1.17"
         id: go
 
       - name: Check out code into the Go module directory
@@ -46,13 +45,13 @@ jobs:
         version:
           - stable
         terraform:
-          - '0.12.29'
-          - '0.13.4'
+          - "0.12.29"
+          - "0.13.4"
     steps:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: '1.15.4'
+          go-version: "1.17"
         id: go
 
       - name: Check out code into the Go module directory
@@ -79,7 +78,7 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: v1.33.0
+          version: v1.46
 
   codespell:
     name: Codespell

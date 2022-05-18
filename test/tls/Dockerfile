@@ -1,4 +1,4 @@
-FROM alpine:3.11
+FROM alpine:3.14
 ENTRYPOINT [ "/entrypoint.sh" ]
 
 RUN apk add --no-cache --update --upgrade ca-certificates postgresql-client
